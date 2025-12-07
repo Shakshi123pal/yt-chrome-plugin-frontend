@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>YouTube Comment Analyzer</title>
+
+  <style>
+    /* Dark Theme */
+    body {
+      font-family: Arial, sans-serif;
+      padding: 12px;
+      background-color: #1e1e1e;
+      color: #f1f1f1;
+      margin: 0;
+      width: 330px;
+      box-sizing: border-box;
+    }
+
+    h1 {
+      font-size: 18px;
+      margin-bottom: 10px;
+      color: #00aaff;
+      text-align: center;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      background-color: #00aaff;
+      border: none;
+      border-radius: 5px;
+      font-size: 14px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #fff;
+    }
+
+    button:hover {
+      background-color: #0088cc;
+    }
+
+    .section-title {
+      margin-top: 15px;
+      font-size: 14px;
+      font-weight: bold;
+      color: #00aaff;
+    }
+
+    .comment-list {
+      list-style: none;
+      padding: 0;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    .comment-item {
+      padding: 8px;
+      margin-bottom: 8px;
+      background-color: #2d2d2d;
+      border-radius: 4px;
+    }
+
+    .sentiment {
+      font-weight: bold;
+      color: #ffd700;
+    }
+
+    /* Chart & WordCloud Images */
+    img {
+      width: 100%;
+      margin-top: 12px;
+      border-radius: 6px;
+    }
+
+    /* Metrics Section */
+    .metrics-container {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .metric {
+      width: 48%;
+      padding: 10px;
+      background-color: #2d2d2d;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    .metric-title {
+      font-size: 12px;
+      color: #bbb;
+    }
+
+    .metric-value {
+      font-size: 18px;
+      font-weight: bold;
+      color: #fff;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>YouTube Comment Analyzer</h1>
+
+  <!-- Button to fetch comments + analyze sentiment -->
+  <button id="analyzeBtn">Analyze Current Video Comments</button>
+
+  <!-- Output section -->
+  <div id="output"></div>
+
+  <!-- Sentiment Chart -->
+  <img id="sentimentChart" style="display:none;" />
+
+  <!-- WordCloud -->
+  <img id="wordcloudImg" style="display:none;" />
+
+  <script src="popup.js"></script>
+</body>
+</html>
