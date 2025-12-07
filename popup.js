@@ -1,207 +1,89 @@
 document.addEventListener("DOMContentLoaded", async () => {
   const outputDiv = document.getElementById("output");
+  const API_URL = "http://127.0.0.1:5000";  // LOCAL FASTAPI BACKEND
+  const API_KEY = "YOUR_YOUTUBE_API_KEY";  // Replace with your key
 
-  // ⭐ Your Local FastAPI Backend
-  const API_URL = "http://127.0.0.1:5000";
+  document.getElementById("sendRequest").addEventListener("click", analyzeVideo);
 
-  // ⭐ Your Existing YouTube Comment API KEY (Fully Works)
-  const API_KEY = "AIzaSyDoY_aDeASgSq7cWGv4CMQ4LX5Fx_hsNNo";
+  async function analyzeVideo() {
+    outputDiv.innerHTML = "<p>Detecting YouTube video...</p>";
 
-  // Get active tab URL
-  chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
-    const url = tabs[0].url;
+    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+      const url = tabs[0].url;
 
-    // Extract video ID
-    const ytRegex = /^https:\/\/(?:www\.)?youtube\.com\/watch\?v=([\w-]{11})/;
-    const match = url.match(ytRegex);
+      // FIXED REGEX — now detects ANY YouTube link
+      const youtubeRegex = /v=([\w-]{11})/;
+      const match = url.match(youtubeRegex);
 
-    if (!match) {
-      outputDiv.innerHTML = "<p>This is NOT a YouTube video.</p>";
-      return;
-    }
+      if (!match) {
+        outputDiv.innerHTML = "<p>This is NOT a YouTube video.</p>";
+        return;
+      }
 
-    const videoId = match[1];
+      const videoId = match[1];
+      outputDiv.innerHTML = `<p>Video ID detected: ${videoId}</p>`;
 
-    outputDiv.innerHTML = `
-      <div class="section-title">Video ID:</div>
-      <p>${videoId}</p>
-      <p>Fetching comments...</p>
-    `;
+      const comments = await fetchComments(videoId);
 
-    // Fetch YT comments
-    const comments = await fetchComments(videoId);
+      if (comments.length === 0) {
+        outputDiv.innerHTML += "<p>No comments found.</p>";
+        return;
+      }
 
-    if (comments.length === 0) {
-      outputDiv.innerHTML += "<p>No comments found.</p>";
-      return;
-    }
+      outputDiv.innerHTML += `<p>Fetched ${comments.length} comments. Analyzing...</p>`;
 
-    outputDiv.innerHTML += `<p>Fetched ${comments.length} comments. Analyzing sentiments...</p>`;
+      const predictions = await getSentimentPredictions(comments);
 
-    // Get predictions
-    const predictions = await getSentimentPredictions(comments);
-
-    if (!predictions) {
-      outputDiv.innerHTML += "<p>Error in sentiment analysis.</p>";
-      return;
-    }
-
-    // -----------------------
-    // SENTIMENT SUMMARY
-    // -----------------------
-    const sentimentCounts = { "0": 0, "1": 0, "2": 0 };
-    const sentimentData = [];
-
-    predictions.forEach((item) => {
-      sentimentCounts[item.sentiment]++;
-      sentimentData.push({
-        timestamp: item.timestamp,
-        sentiment: parseInt(item.sentiment),
-      });
+      outputDiv.innerHTML += `<pre>${JSON.stringify(predictions.slice(0,5), null, 2)}</pre>`;
     });
+  }
 
-    const totalComments = comments.length;
-
-    outputDiv.innerHTML += `
-      <div class="section">
-        <div class="section-title">Summary</div>
-        <p><b>Total Comments:</b> ${totalComments}</p>
-      </div>
-    `;
-
-    // PIE CHART
-    outputDiv.innerHTML += `
-      <div class="section">
-        <div class="section-title">Sentiment Chart</div>
-        <div id="chart-container"></div>
-      </div>
-    `;
-    await fetchAndDisplayChart(sentimentCounts);
-
-    // WORD CLOUD
-    outputDiv.innerHTML += `
-      <div class="section">
-        <div class="section-title">Word Cloud</div>
-        <div id="wordcloud-container"></div>
-      </div>
-    `;
-    await fetchAndDisplayWordCloud(comments.map((c) => c.text));
-
-    // TOP COMMENTS
-    outputDiv.innerHTML += `
-      <div class="section">
-        <div class="section-title">Top 20 Comments</div>
-        <ul class="comment-list">
-          ${predictions
-            .slice(0, 20)
-            .map(
-              (item, i) => `
-                <li class="comment-item">
-                ${i + 1}. ${item.comment}<br>
-                <span class="comment-sentiment">Sentiment: ${item.sentiment}</span>
-                </li>
-              `
-            )
-            .join("")}
-        </ul>
-      </div>
-    `;
-  });
-
-  // -------------------------
-  // Fetch YouTube Comments
-  // -------------------------
+  // --- FETCH COMMENTS FROM YOUTUBE API ---
   async function fetchComments(videoId) {
     let comments = [];
-    let nextPage = "";
+    let pageToken = "";
 
     try {
-      while (comments.length < 300) {
-        const url = `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&maxResults=100&videoId=${videoId}&pageToken=${nextPage}&key=${API_KEY}`;
+      while (comments.length < 200) {
+        const url =
+          `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${videoId}` +
+          `&maxResults=100&pageToken=${pageToken}&key=${API_KEY}`;
 
-        const res = await fetch(url);
-        const data = await res.json();
+        const response = await fetch(url);
+        const data = await response.json();
 
-        if (!data.items) break;
-
-        data.items.forEach((item) => {
-          comments.push({
-            text: item.snippet.topLevelComment.snippet.textOriginal,
-            timestamp: item.snippet.topLevelComment.snippet.publishedAt,
+        if (data.items) {
+          data.items.forEach((item) => {
+            comments.push({
+              text: item.snippet.topLevelComment.snippet.textOriginal,
+              timestamp: item.snippet.topLevelComment.snippet.publishedAt,
+            });
           });
-        });
+        }
 
-        nextPage = data.nextPageToken;
-        if (!nextPage) break;
+        pageToken = data.nextPageToken;
+        if (!pageToken) break;
       }
     } catch (err) {
-      console.error("YT Fetch Error:", err);
+      console.error(err);
     }
 
     return comments;
   }
 
-  // -------------------------
-  // Get Sentiment Predictions
-  // -------------------------
+  // ---- SEND COMMENTS TO FASTAPI BACKEND ----
   async function getSentimentPredictions(comments) {
     try {
-      const res = await fetch(`${API_URL}/predict_with_timestamps`, {
+      const response = await fetch(`${API_URL}/predict_with_timestamps`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ comments }),
       });
 
-      return await res.json();
-    } catch (err) {
-      console.error("Prediction Error:", err);
+      return await response.json();
+    } catch (error) {
+      console.error("Prediction error:", error);
       return null;
-    }
-  }
-
-  // -------------------------
-  // Show Pie Chart
-  // -------------------------
-  async function fetchAndDisplayChart(sentimentCounts) {
-    try {
-      const res = await fetch(`${API_URL}/generate_chart`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sentiment_counts: sentimentCounts }),
-      });
-
-      const blob = await res.blob();
-      const imgURL = URL.createObjectURL(blob);
-
-      const img = document.createElement("img");
-      img.src = imgURL;
-
-      document.getElementById("chart-container").appendChild(img);
-    } catch (err) {
-      console.log("Chart error:", err);
-    }
-  }
-
-  // -------------------------
-  // Show WordCloud
-  // -------------------------
-  async function fetchAndDisplayWordCloud(comments) {
-    try {
-      const res = await fetch(`${API_URL}/generate_wordcloud`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comments }),
-      });
-
-      const blob = await res.blob();
-      const imgURL = URL.createObjectURL(blob);
-
-      const img = document.createElement("img");
-      img.src = imgURL;
-
-      document.getElementById("wordcloud-container").appendChild(img);
-    } catch (err) {
-      console.log("Wordcloud error:", err);
     }
   }
 });
