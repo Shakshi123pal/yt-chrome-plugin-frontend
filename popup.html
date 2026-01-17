@@ -2,80 +2,49 @@
 <html>
 <head>
   <title>YouTube Comment Analyzer</title>
-
   <style>
-    /* Dark Theme */
     body {
       font-family: Arial, sans-serif;
       padding: 10px;
       background-color: #1e1e1e;
       color: #f1f1f1;
-      margin: 0;
       width: 330px;
-      box-sizing: border-box;
     }
-
-    h1 {
-      font-size: 18px;
-      color: #ffffff;
-      margin-bottom: 10px;
-      text-align: center;
-    }
+    h1 { color: #4db8ff; font-size: 20px; }
 
     button {
       width: 100%;
       padding: 10px;
       background-color: #0099ff;
       border: none;
-      border-radius: 5px;
+      border-radius: 6px;
       color: white;
       font-size: 15px;
       cursor: pointer;
-      margin-bottom: 15px;
+      margin: 12px 0;
     }
 
-    button:hover {
-      background-color: #007acc;
-    }
-
-    .section-title {
-      font-size: 15px;
-      font-weight: bold;
-      color: #00c3ff;
-      margin-top: 15px;
-    }
+    button:hover { background-color: #007acc; }
 
     .comment-item {
-      background: #333;
+      background-color: #333;
       padding: 8px;
-      border-radius: 4px;
-      margin-bottom: 8px;
-    }
-
-    img {
-      width: 100%;
-      border-radius: 4px;
-      margin-top: 10px;
-    }
-
-    #output {
-      margin-top: 10px;
-      white-space: normal;
-      font-size: 14px;
+      border-radius: 6px;
+      margin: 6px 0;
     }
   </style>
 </head>
 
 <body>
-
   <h1>YouTube Comment Analyzer</h1>
 
-  <!-- IMPORTANT: This button triggers popup.js processing -->
-  <button id="sendRequest">Analyze Current Video Comments</button>
+  <!-- ✅ THIS BUTTON WAS MISSING -->
+  <button id="sendRequest">Analyze Current Video</button>
 
-  <!-- Output container -->
   <div id="output">Click the button to start analysis.</div>
 
+  <!-- ✅ JS AT BOTTOM -->
   <script src="popup.js"></script>
 </body>
 </html>
+
