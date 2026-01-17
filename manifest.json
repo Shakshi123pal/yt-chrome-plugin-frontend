@@ -1,21 +1,17 @@
 {
   "manifest_version": 3,
-  "name": "YouTube Sentiment Analysis",
+  "name": "YouTube Comment Sentiment Analyzer",
   "version": "1.0",
-  "description": "Analyzes YouTube video comments for sentiment.",
-  
+  "description": "Analyze YouTube comments using ML backend",
+
   "action": {
     "default_popup": "popup.html"
   },
 
-  "permissions": [
-    "tabs",
-    "activeTab",
-    "scripting"
-  ],
+  "permissions": ["tabs"],
 
   "host_permissions": [
-    "http://127.0.0.1:5000/*",
+    "http://127.0.0.1:8000/*",
     "https://www.googleapis.com/*"
   ]
 }
